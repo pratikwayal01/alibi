@@ -1,0 +1,81 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Alibi popup preview</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Special+Elite&display=swap" rel="stylesheet">
+<style>
+:root{--yellow:#F2C230;--ink:#1B1F2A;--red:#D8362F;--wall:#C9D3D8;--paper:#E9EEF0;--green:#2F7D5B}
+*{box-sizing:border-box}
+body{margin:0;padding:32px 16px;background:#aab6bc;font-family:'IBM Plex Sans',system-ui,sans-serif;color:var(--ink);display:flex;flex-wrap:wrap;gap:32px;justify-content:center;align-items:flex-start}
+svg{display:block}
+.popup{width:340px;background:var(--wall);padding:16px;border:2px solid var(--ink);border-radius:8px}
+.head{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.head .logo{width:34px;height:34px}
+.head h1{font:400 26px 'Special Elite',serif;margin:0;flex:1}
+.stamp{font:400 15px 'Special Elite',serif;color:var(--red);border:2px solid var(--red);padding:3px 10px;border-radius:3px;transform:rotate(-4deg);background:transparent;cursor:pointer;transition:transform .12s}
+.stamp:active{transform:rotate(-4deg) scale(.93)}
+.stamp[aria-checked=false]{color:#5c6470;border-color:#5c6470}
+.card{background:var(--paper);border:2px solid var(--ink);border-radius:6px;padding:10px 12px;display:flex;gap:10px;align-items:center;margin-bottom:10px}
+.card .who{flex:1}
+.old{font:400 14px 'Special Elite',serif;position:relative;display:inline-block;padding:0 4px}
+.old::after{content:"";position:absolute;left:-2px;right:-2px;top:50%;height:8px;margin-top:-4px;background:var(--red);transform:rotate(-3deg)}
+.alias{font:400 22px 'Special Elite',serif;margin-top:4px;display:block}
+.dice{width:40px;height:40px;background:var(--yellow);border:2px solid var(--ink);border-radius:6px;display:grid;place-items:center;cursor:pointer}
+.dice:active svg{transform:rotate(90deg);transition:transform .2s}
+h2{font:600 13px 'IBM Plex Sans';margin:16px 0 8px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:2px solid var(--ink);border-radius:999px;padding:5px 12px;font:500 13px 'IBM Plex Sans';background:transparent;cursor:pointer}
+.chip.on{background:var(--ink);color:var(--yellow)}
+.seg{display:flex;border:2px solid var(--ink);border-radius:6px;overflow:hidden}
+.seg button{flex:1;padding:8px;font:500 13px 'IBM Plex Sans';background:transparent;border:0;cursor:pointer;color:var(--ink)}
+.seg .on{background:var(--ink);color:#fff}
+label.chk{display:flex;gap:8px;align-items:center;font-size:13px;margin-top:10px}
+.foot{margin-top:14px;font-size:13px;color:rgba(27,31,42,.75);display:grid;gap:6px}
+.foot div{display:flex;gap:8px;align-items:center}
+.foot svg{width:18px;height:18px}
+.add{margin-top:8px;display:flex;gap:6px;align-items:center;background:none;border:2px dashed var(--ink);border-radius:6px;padding:8px 10px;font:500 13px 'IBM Plex Sans';width:100%;cursor:pointer}
+:focus-visible{outline:2px solid var(--ink);outline-offset:2px;box-shadow:0 0 0 5px var(--yellow)}
+.sheet{width:420px;background:var(--paper);border:2px solid var(--ink);border-radius:8px;padding:16px}
+.sheet h2{margin-top:0;font:400 20px 'Special Elite'}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.tile{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;padding:10px 4px;border:2px solid var(--ink);border-radius:6px;background:var(--wall)}
+.tile svg{width:28px;height:28px}
+.logos{display:flex;gap:14px;align-items:flex-end;margin-top:14px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style></head><body>
+<main class="popup">
+ <div class="head"><div class="logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><rect width="128" height="128" rx="26" fill="#F2C230"/><path d="M14 20h10M14 40h10M14 60h10M14 80h10M14 100h10" stroke="#1B1F2A" stroke-width="4" stroke-linecap="round"/><circle cx="70" cy="52" r="24" fill="#E9EEF0" stroke="#1B1F2A" stroke-width="5"/><path d="M26 118c4-26 22-36 44-36s40 10 44 36z" fill="#1B1F2A"/><rect x="36" y="42" width="72" height="15" rx="2" fill="#D8362F" transform="rotate(-6 72 50)"/></svg></div><h1>Alibi</h1>
+  <button class="stamp" role="switch" aria-checked="true" id="sw">On duty</button></div>
+ <div class="card"><div style="width:32px"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="15" height="18" rx="1.5"/><circle cx="12.5" cy="9.5" r="2.5"/><path d="M8 18c.6-3 2.4-4.5 4.5-4.5s3.9 1.5 4.5 4.5M2 7h2M2 11h2M2 15h2M2 19h2"/></svg></div><div class="who"><span class="old">Alice</span><span class="alias" id="a">Sharmaji ka Beta</span></div><button class="dice" aria-label="Give Alice a new alias" onclick="roll()"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="9" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="15" cy="15" r="1" fill="currentColor"/></svg></button></div>
+ <div class="card"><div style="width:32px"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="15" height="18" rx="1.5"/><circle cx="12.5" cy="9.5" r="2.5"/><path d="M8 18c.6-3 2.4-4.5 4.5-4.5s3.9 1.5 4.5 4.5M2 7h2M2 11h2M2 15h2M2 19h2"/></svg></div><div class="who"><span class="old">Bob</span><span class="alias" id="b">Pintu</span></div><button class="dice" aria-label="Give Bob a new alias" onclick="roll()"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="9" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="15" cy="15" r="1" fill="currentColor"/></svg></button></div>
+ <h2>Pick a pack</h2>
+ <div class="chips"><button class="chip on">Desi</button><button class="chip">Corporate</button><button class="chip">Anime</button><button class="chip">Mythic</button><button class="chip">Debug</button></div>
+ <button class="add"><span style="width:18px"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></span>Use my own names</button>
+ <h2>Aliases</h2>
+ <div class="seg"><button class="on">One per page</button><button>Chaos</button></div>
+ <label class="chk"><input type="checkbox" checked> Leave samples and code alone</label>
+ <div class="foot"><div><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></svg>27 names changed here</div><div><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg>Nothing leaves your browser</div></div>
+</main>
+<section class="sheet"><h2>Icon pack</h2><div class="grid">
+<div class="tile"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h14l-3-3M20 16H6l3 3"/></svg>swap</div>
+<div class="tile"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="15" height="18" rx="1.5"/><circle cx="12.5" cy="9.5" r="2.5"/><path d="M8 18c.6-3 2.4-4.5 4.5-4.5s3.9 1.5 4.5 4.5M2 7h2M2 11h2M2 15h2M2 19h2"/></svg>mugshot</div>
+<div class="tile"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="9" width="18" height="6" rx="1" fill="currentColor"/><path d="M3 5h8M3 19h12"/></svg>redact</div>
+<div class="tile"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="6" r="3"/><path d="M10 9l-1 5h6l-1-5"/><rect x="4" y="14" width="16" height="3" rx="1"/><path d="M5 21h14"/></svg>stamp</div>
+<div class="tile"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 10a6 6 0 0 1 12 0v2M9 20c1-2 1-4 1-6a2 2 0 0 1 4 0c0 3 .5 5 1.5 7M6 14c0 2-.5 4-1.5 6M12 11v3M18 15c0 2 .3 3.5 1 5"/></svg>fingerprint</div>
+<div class="tile"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></svg>magnifier</div>
+<div class="tile"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="9" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="15" cy="15" r="1" fill="currentColor"/></svg>dice</div>
+<div class="tile"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="10" r="3"/><circle cx="16.5" cy="10" r="3"/><path d="M10.5 10h3M4.5 10L3 8M19.5 10L21 8M8 17c2-1.5 6-1.5 8 0"/></svg>disguise</div>
+<div class="tile"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>folder</div>
+<div class="tile"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="12" r="4"/><path d="M12 12h9M18 12v3M21 12v2"/></svg>key</div>
+<div class="tile"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>envelope</div>
+<div class="tile"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>eve</div>
+<div class="tile"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>plus</div>
+<div class="tile"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg>shield</div>
+</div>
+<div class="logos"><div style="width:128px"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><rect width="128" height="128" rx="26" fill="#F2C230"/><path d="M14 20h10M14 40h10M14 60h10M14 80h10M14 100h10" stroke="#1B1F2A" stroke-width="4" stroke-linecap="round"/><circle cx="70" cy="52" r="24" fill="#E9EEF0" stroke="#1B1F2A" stroke-width="5"/><path d="M26 118c4-26 22-36 44-36s40 10 44 36z" fill="#1B1F2A"/><rect x="36" y="42" width="72" height="15" rx="2" fill="#D8362F" transform="rotate(-6 72 50)"/></svg></div><div style="width:48px"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><rect width="128" height="128" rx="26" fill="#F2C230"/><path d="M14 20h10M14 40h10M14 60h10M14 80h10M14 100h10" stroke="#1B1F2A" stroke-width="4" stroke-linecap="round"/><circle cx="70" cy="52" r="24" fill="#E9EEF0" stroke="#1B1F2A" stroke-width="5"/><path d="M26 118c4-26 22-36 44-36s40 10 44 36z" fill="#1B1F2A"/><rect x="36" y="42" width="72" height="15" rx="2" fill="#D8362F" transform="rotate(-6 72 50)"/></svg></div><div style="width:32px"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><rect width="128" height="128" rx="26" fill="#F2C230"/><path d="M14 20h10M14 40h10M14 60h10M14 80h10M14 100h10" stroke="#1B1F2A" stroke-width="4" stroke-linecap="round"/><circle cx="70" cy="52" r="24" fill="#E9EEF0" stroke="#1B1F2A" stroke-width="5"/><path d="M26 118c4-26 22-36 44-36s40 10 44 36z" fill="#1B1F2A"/><rect x="36" y="42" width="72" height="15" rx="2" fill="#D8362F" transform="rotate(-6 72 50)"/></svg></div><div style="width:16px"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><rect width="128" height="128" rx="26" fill="#F2C230"/><path d="M14 20h10M14 40h10M14 60h10M14 80h10M14 100h10" stroke="#1B1F2A" stroke-width="4" stroke-linecap="round"/><circle cx="70" cy="52" r="24" fill="#E9EEF0" stroke="#1B1F2A" stroke-width="5"/><path d="M26 118c4-26 22-36 44-36s40 10 44 36z" fill="#1B1F2A"/><rect x="36" y="42" width="72" height="15" rx="2" fill="#D8362F" transform="rotate(-6 72 50)"/></svg></div></div></section>
+<script>
+const pairs=[["Sharmaji ka Beta","Pintu"],["Sasuke","Naruto"],["Zeus","Hades"],["Karen from Accounts","Dave from IT"],["NullPointer","SegFault"],["Alpha Alice","Sigma Bob"]];
+function roll(){const p=pairs[Math.floor(Math.random()*pairs.length)];a.textContent=p[0];b.textContent=p[1]}
+const sw=document.getElementById('sw'),a=document.getElementById('a'),b=document.getElementById('b');
+sw.onclick=()=>{const on=sw.getAttribute('aria-checked')!=='true';sw.setAttribute('aria-checked',on);sw.textContent=on?'On duty':'On leave'};
+document.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{document.querySelectorAll('.chip').forEach(x=>x.classList.remove('on'));c.classList.add('on');roll()});
+document.querySelectorAll('.seg button').forEach(c=>c.onclick=()=>{document.querySelectorAll('.seg button').forEach(x=>x.classList.remove('on'));c.classList.add('on')});
+</script></body></html>
