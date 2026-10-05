@@ -58,6 +58,19 @@
     <input type="text" id="customBob" placeholder="Name for Bob" autocomplete="off" maxlength="40">
   </div>
 
+  <h2 id="swapLabel">Custom swaps</h2>
+  <div class="rules" id="ruleList" role="list" aria-labelledby="swapLabel"></div>
+  <div class="ruleadd">
+    <label class="visually-hidden" for="ruleFrom">Original name</label>
+    <input type="text" id="ruleFrom" placeholder="Original" autocomplete="off" maxlength="40">
+    <label class="visually-hidden" for="ruleTo">Becomes</label>
+    <input type="text" id="ruleTo" placeholder="Becomes" autocomplete="off" maxlength="40">
+    <button class="dice dice-sm" id="ruleAdd" aria-label="Add custom swap" title="Add custom swap">
+      <img src="icons/plus.svg" alt="" width="24" height="24" aria-hidden="true">
+    </button>
+  </div>
+  <p class="hint" id="ruleHint" hidden>10 swaps max — delete one to add another</p>
+
   <h2 id="aliasLabel">Aliases</h2>
   <div class="seg" role="group" aria-labelledby="aliasLabel" id="seg">
     <button data-mode="single">One per page</button>

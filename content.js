@@ -9,6 +9,7 @@
     packId: 'desi',
     customAlice: '',
     customBob: '',
+    customRules: [], // [{from, to}] extra swaps beyond Alice/Bob, max 10
     aliasMode: 'single',
     protectSamples: true
   };
@@ -19,6 +20,30 @@
   ];
 
   var MATCH_RE = /\b(Alice|Bob)('s|\u2019s|s)?\b/gi;
+  function escRe(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+  // Rebuild matcher to include custom `from` names (longest first wins).
+  function rebuildMatcher() {
+    var names = ['Alice', 'Bob'];
+    (settings.customRules || []).forEach(function (r) {
+      if (r && r.from && r.from.trim()) names.push(r.from.trim());
+    });
+    names.sort(function (a, b) { return b.length - a.length; });
+    MATCH_RE = new RegExp('\\b(' + names.map(escRe).join('|') + ")('s|\u2019s|s)?\\b", 'gi');
+  }
+  // Alias base for a matched name (suffix added by caller). Core names use
+  // pack logic; custom rules map to their fixed `to` (chaos-proof).
+  function aliasBase(name) {
+    var lower = name.toLowerCase();
+    if (lower === 'alice' || lower === 'bob') return aliasFor(lower === 'alice');
+    var rules = settings.customRules || [];
+    for (var i = 0; i < rules.length; i++) {
+      if (rules[i] && rules[i].from &&
+          rules[i].from.toLowerCase() === lower && rules[i].to) {
+        return rules[i].to;
+      }
+    }
+    return name; // unreachable: regex only matches known names
+  }
   // Always-skipped zones. PRE/CODE are appended only when protectSamples is on.
   var SAFE_ALWAYS = 'SCRIPT,STYLE,TEXTAREA,INPUT,[contenteditable],.monaco-editor,.CodeMirror,.MathJax,.katex,mjx-container';
   var ATTR = 'data-alibi-original';
@@ -105,8 +130,7 @@
     var out = null, frag = null, last = 0, m;
     while ((m = MATCH_RE.exec(text)) !== null) {
       if (!frag) { frag = document.createDocumentFragment(); out = true; }
-      var isAlice = m[1].toLowerCase() === 'alice';
-      var aliasStr = matchCase(m[1], aliasFor(isAlice)) + (m[2] || '');
+      var aliasStr = matchCase(m[1], aliasBase(m[1])) + (m[2] || '');
       if (m.index > last) frag.appendChild(document.createTextNode(text.slice(last, m.index)));
       var span = document.createElement('span');
       span.setAttribute(ATTR, m[0]);
@@ -162,9 +186,7 @@
     if (originalTitle === null) originalTitle = document.title;
     MATCH_RE.lastIndex = 0;
     document.title = originalTitle.replace(MATCH_RE, function (m, name, suffix) {
-      var isAlice = name.toLowerCase() === 'alice';
-      var base = settings.aliasMode === 'chaos' ? aliasFor(isAlice) : pair[isAlice ? 0 : 1];
-      return matchCase(name, base) + (suffix || '');
+      return matchCase(name, aliasBase(name)) + (suffix || '');
     });
   }
 
@@ -176,6 +198,7 @@
     unwrapAll();
     if (!settings.enabled) return;
     pickPair();
+    rebuildMatcher();
     walk(document.body);
     swapTitle();
     recount();

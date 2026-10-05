@@ -9,6 +9,7 @@
     packId: 'desi',
     customAlice: '',
     customBob: '',
+    customRules: [],
     aliasMode: 'single',
     protectSamples: true
   };
@@ -36,6 +37,12 @@
   var elCustomBob = document.getElementById('customBob');
   var elSeg = document.getElementById('seg');
   var elProtect = document.getElementById('protectSamples');
+  var elRuleFrom = document.getElementById('ruleFrom');
+  var elRuleTo = document.getElementById('ruleTo');
+  var elRuleAdd = document.getElementById('ruleAdd');
+  var elRuleList = document.getElementById('ruleList');
+  var elRuleHint = document.getElementById('ruleHint');
+  var MAX_RULES = 10;
   var elSaved = document.getElementById('saved');
   var elCount = document.getElementById('count');
 
@@ -49,7 +56,7 @@
   function save(patch) {
     Object.assign(settings, patch);
     api.storage.sync.set(settings, function () { flashSaved(); });
-    renderAliases();
+    renderControls(); /* repaints switch, chips, seg — renderAliases included */
   }
 
   /* packs.json may not exist yet (owned by core agent) — fall back silently. */
@@ -106,7 +113,29 @@
     });
 
     elProtect.checked = settings.protectSamples !== false;
+    renderRules();
     renderAliases();
+  }
+
+  function renderRules() {
+    var rules = settings.customRules || [];
+    elRuleList.innerHTML = '';
+    rules.forEach(function (r, i) {
+      var row = document.createElement('div');
+      row.className = 'rule';
+      var label = document.createElement('span');
+      label.textContent = r.from + ' → ' + r.to;
+      var del = document.createElement('button');
+      del.textContent = '✕';
+      del.setAttribute('aria-label', 'Delete swap ' + r.from);
+      del.dataset.index = String(i);
+      row.appendChild(label);
+      row.appendChild(del);
+      elRuleList.appendChild(row);
+    });
+    var full = rules.length >= MAX_RULES;
+    elRuleAdd.disabled = full;
+    elRuleHint.hidden = !full;
   }
 
   /* --- events --- */
@@ -146,6 +175,22 @@
     save({ protectSamples: elProtect.checked });
   });
 
+  elRuleAdd.addEventListener('click', function () {
+    var from = elRuleFrom.value.trim(), to = elRuleTo.value.trim();
+    var rules = settings.customRules || [];
+    if (!from || !to || rules.length >= MAX_RULES) return;
+    elRuleFrom.value = '';
+    elRuleTo.value = '';
+    save({ customRules: rules.concat([{ from: from, to: to }]) });
+  });
+
+  elRuleList.addEventListener('click', function (e) {
+    var btn = e.target.closest('button');
+    if (!btn || btn.dataset.index == null) return;
+    var drop = Number(btn.dataset.index);
+    save({ customRules: (settings.customRules || []).filter(function (_, i) { return i !== drop; }) });
+  });
+
   /* Reroll: content script owns the shuffle; popup just asks + refreshes. */
   function reroll() {
     sendToActiveTab({ type: 'alibi-reroll' });
@@ -163,12 +208,22 @@
       var tabs = api.tabs;
       if (!tabs || !tabs.query) return;
       tabs.query({ active: true, currentWindow: true }, function (list) {
-        try {
-          if (!list || !list[0] || list[0].id == null) return;
-          tabs.sendMessage(list[0].id, message);
-        } catch (e) { /* content script absent — empty state stays */ }
+        deliver(list, message);
       });
     } catch (e) { /* tabs API unavailable — empty state stays */ }
+  }
+
+  /* MV3 tabs.sendMessage without a response callback returns a promise that
+     rejects when the tab has no content script (stale/unsupported page).
+     Swallow it — the empty-state text already covers that case. */
+  function deliver(list, message, callback) {
+    try {
+      if (!list || !list[0] || list[0].id == null) return;
+      var pending = api.tabs.sendMessage(list[0].id, message, callback);
+      if (pending && typeof pending.catch === 'function') {
+        pending.catch(function () { /* no receiving end — empty state stays */ });
+      }
+    } catch (e) { /* content script absent — empty state stays */ }
   }
 
   function refreshCount() {
@@ -176,17 +231,14 @@
       var tabs = api.tabs;
       if (!tabs || !tabs.query) return;
       tabs.query({ active: true, currentWindow: true }, function (list) {
-        try {
-          if (!list || !list[0] || list[0].id == null) return;
-          tabs.sendMessage(list[0].id, { type: 'alibi-count' }, function (res) {
-            if (chrome.runtime && chrome.runtime.lastError) return;
-            if (res && typeof res.count === 'number') {
-              elCount.textContent = res.count > 0
-                ? res.count + ' name' + (res.count === 1 ? '' : 's') + ' changed here'
-                : 'Nothing to rename on this page';
-            }
-          });
-        } catch (e) { /* keep empty state */ }
+        deliver(list, { type: 'alibi-count' }, function (res) {
+          if (chrome.runtime && chrome.runtime.lastError) return;
+          if (res && typeof res.count === 'number') {
+            elCount.textContent = res.count > 0
+              ? res.count + ' name' + (res.count === 1 ? '' : 's') + ' changed here'
+              : 'Nothing to rename on this page';
+          }
+        });
       });
     } catch (e) { /* keep empty state */ }
   }

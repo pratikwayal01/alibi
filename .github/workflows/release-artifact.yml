@@ -1,0 +1,29 @@
+name: release-artifact
+
+# Manual only: rebuilds the extension zip from a tag and (re)attaches it
+# to that tag's release. No automatic triggers on purpose.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag whose artifact should be rebuilt (e.g. v0.1)"
+        required: true
+        type: string
+
+jobs:
+  artifact:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ inputs.tag }}
+
+      - name: Build extension zip
+        run: git archive -o alibi-${{ inputs.tag }}.zip HEAD
+
+      - name: Upload artifact to release
+        run: gh release upload ${{ inputs.tag }} alibi-${{ inputs.tag }}.zip --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

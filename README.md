@@ -37,6 +37,9 @@ Each pack has 10+ pairs. Hit the 🎲 whenever the current one stops being funny
 **Chaos mode** gives every mention its own alias. One problem, fourteen
 Bobs, zero survivors.
 
+**Custom swaps** let you widen the net: any name → any alias (up to 10).
+Charlie keeps showing up uninvited? Relocate him too.
+
 ## Ground rules
 
 - Samples and your code are **never touched**. Alibi can't break your
