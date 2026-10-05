@@ -57,6 +57,7 @@
     Object.assign(settings, patch);
     api.storage.sync.set(settings, function () { flashSaved(); });
     renderControls(); /* repaints switch, chips, seg — renderAliases included */
+    refreshState(); /* page applied the same save via storage event — mirror it */
   }
 
   /* packs.json may not exist yet (owned by core agent) — fall back silently. */
@@ -68,24 +69,43 @@
       var map = {};
       var list = Array.isArray(data) ? data : (data.packs || data.pairs || []);
       list.forEach(function (p) {
-        var id = String(p.id || p.pack || '').toLowerCase();
-        var pair = p.pair || p.aliases || p.names || [p.alice, p.bob];
-        if (id && Array.isArray(pair) && pair.length >= 2) map[id] = [pair[0], pair[1]];
+        var id = String(p.id || '').toLowerCase();
+        if (id && Array.isArray(p.pairs) && p.pairs.length) map[id] = p.pairs;
       });
       packs = Object.keys(map).length ? map : null;
       done();
     }).catch(function () { done(); });
   }
 
+  function hashStr(s) {
+    var h = 5381;
+    for (var i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0;
+    return h;
+  }
+
+  /* Pairs arrays per pack; fallbacks wrap their single preview pair. */
+  function packPairs(id) {
+    if (packs && packs[id]) return packs[id];
+    return [FALLBACK_PAIRS[id] || FALLBACK_PAIRS.desi];
+  }
+
+  /* Drafted alias for a blank-`to` rule. Seed mirrors content.js autoAlias. */
+  function autoAliasFor(from) {
+    var flat = [];
+    packPairs(settings.packId).forEach(function (pr) { flat.push(pr[0], pr[1]); });
+    if (!flat.length) return 'auto';
+    return flat[hashStr(settings.packId + '|' + from.toLowerCase()) % flat.length];
+  }
+
   function currentPair() {
+    var base = packPairs(settings.packId)[0] || FALLBACK_PAIRS.desi;
     if (settings.customAlice.trim() || settings.customBob.trim()) {
-      var base = (packs || FALLBACK_PAIRS)[settings.packId] || FALLBACK_PAIRS.desi;
       return [
         settings.customAlice.trim() || base[0],
         settings.customBob.trim() || base[1]
       ];
     }
-    return (packs || FALLBACK_PAIRS)[settings.packId] || FALLBACK_PAIRS.desi;
+    return base;
   }
 
   function renderAliases() {
@@ -124,7 +144,9 @@
       var row = document.createElement('div');
       row.className = 'rule';
       var label = document.createElement('span');
-      label.textContent = r.from + ' → ' + r.to;
+      label.textContent = r.to
+        ? (r.from + ' → ' + r.to)
+        : (r.from + ' → 🎲 ' + autoAliasFor(r.from));
       var del = document.createElement('button');
       del.textContent = '✕';
       del.setAttribute('aria-label', 'Delete swap ' + r.from);
@@ -178,7 +200,7 @@
   elRuleAdd.addEventListener('click', function () {
     var from = elRuleFrom.value.trim(), to = elRuleTo.value.trim();
     var rules = settings.customRules || [];
-    if (!from || !to || rules.length >= MAX_RULES) return;
+    if (!from || rules.length >= MAX_RULES) return; // blank `to` = drafted alias
     elRuleFrom.value = '';
     elRuleTo.value = '';
     save({ customRules: rules.concat([{ from: from, to: to }]) });
@@ -191,56 +213,57 @@
     save({ customRules: (settings.customRules || []).filter(function (_, i) { return i !== drop; }) });
   });
 
-  /* Reroll: content script owns the shuffle; popup just asks + refreshes. */
+  /* Reroll: content script owns the shuffle; popup re-reads live state after. */
   function reroll() {
-    sendToActiveTab({ type: 'alibi-reroll' });
-    refreshCount();
-    /* Show a fresh preview pair immediately so the card feels alive. */
-    loadPacks(renderAliases);
+    queryTab({ type: 'alibi-reroll' }, function () { refreshState(); });
   }
   document.getElementById('diceAlice').addEventListener('click', reroll);
   document.getElementById('diceBob').addEventListener('click', reroll);
 
   /* --- active-tab messaging (no tabs permission; may fail — that's fine) --- */
 
-  function sendToActiveTab(message) {
+  /* Tab query with a response. No-content-script tabs resolve null
+     (promise rejection on MV3, lastError on callback style) — never throw. */
+  function queryTab(message, cb) {
+    var done = false;
+    function once(v) { if (!done) { done = true; cb(v); } }
     try {
       var tabs = api.tabs;
-      if (!tabs || !tabs.query) return;
+      if (!tabs || !tabs.query) { once(null); return; }
       tabs.query({ active: true, currentWindow: true }, function (list) {
-        deliver(list, message);
-      });
-    } catch (e) { /* tabs API unavailable — empty state stays */ }
-  }
-
-  /* MV3 tabs.sendMessage without a response callback returns a promise that
-     rejects when the tab has no content script (stale/unsupported page).
-     Swallow it — the empty-state text already covers that case. */
-  function deliver(list, message, callback) {
-    try {
-      if (!list || !list[0] || list[0].id == null) return;
-      var pending = api.tabs.sendMessage(list[0].id, message, callback);
-      if (pending && typeof pending.catch === 'function') {
-        pending.catch(function () { /* no receiving end — empty state stays */ });
-      }
-    } catch (e) { /* content script absent — empty state stays */ }
-  }
-
-  function refreshCount() {
-    try {
-      var tabs = api.tabs;
-      if (!tabs || !tabs.query) return;
-      tabs.query({ active: true, currentWindow: true }, function (list) {
-        deliver(list, { type: 'alibi-count' }, function (res) {
-          if (chrome.runtime && chrome.runtime.lastError) return;
-          if (res && typeof res.count === 'number') {
-            elCount.textContent = res.count > 0
-              ? res.count + ' name' + (res.count === 1 ? '' : 's') + ' changed here'
-              : 'Nothing to rename on this page';
+        try {
+          if (!list || !list[0] || list[0].id == null) { once(null); return; }
+          var pending = api.tabs.sendMessage(list[0].id, message, function (res) {
+            if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.lastError) {
+              once(null);
+              return;
+            }
+            once(res || null);
+          });
+          if (pending && typeof pending.then === 'function') {
+            /* Firefox resolves the response on the promise and ignores the
+               callback; MV3 Chrome rejects here when no listener exists. */
+            pending.then(function (res) { once(res || null); }, function () { once(null); });
           }
-        });
+        } catch (e) { once(null); }
       });
-    } catch (e) { /* keep empty state */ }
+    } catch (e) { once(null); }
+  }
+
+  /* Single round-trip: live count + the page's actual pair
+     (null in chaos mode / when off / no content script). */
+  function refreshState() {
+    queryTab({ type: 'alibi-state' }, function (res) {
+      if (res && Array.isArray(res.pair) && res.pair.length >= 2) {
+        elAliasAlice.textContent = res.pair[0];
+        elAliasBob.textContent = res.pair[1];
+      }
+      if (res && typeof res.count === 'number') {
+        elCount.textContent = res.count > 0
+          ? res.count + ' name' + (res.count === 1 ? '' : 's') + ' changed here'
+          : 'Nothing to rename on this page';
+      }
+    });
   }
 
   /* --- init --- */
@@ -249,7 +272,7 @@
     settings = Object.assign({}, DEFAULTS, stored);
     loadPacks(function () {
       renderControls();
-      refreshCount();
+      refreshState();
     });
   });
 })();

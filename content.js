@@ -30,16 +30,27 @@
     names.sort(function (a, b) { return b.length - a.length; });
     MATCH_RE = new RegExp('\\b(' + names.map(escRe).join('|') + ")('s|\u2019s|s)?\\b", 'gi');
   }
+  // Deterministic pack alias for a custom name with blank `to`
+  // (mirrored by popup.js autoAliasFor — keep the seed format identical).
+  function autoAlias(from) {
+    var pack = findPack();
+    var list = (pack && pack.pairs && pack.pairs.length) ? pack.pairs : FALLBACK_PACKS[0].pairs;
+    var flat = [];
+    list.forEach(function (pr) { flat.push(pr[0], pr[1]); });
+    if (!flat.length) return from;
+    return flat[hashStr(settings.packId + '|' + from.toLowerCase()) % flat.length];
+  }
   // Alias base for a matched name (suffix added by caller). Core names use
-  // pack logic; custom rules map to their fixed `to` (chaos-proof).
+  // pack logic; custom rules map to their fixed `to` (chaos-proof), or a
+  // drafted alias when `to` is blank.
   function aliasBase(name) {
     var lower = name.toLowerCase();
     if (lower === 'alice' || lower === 'bob') return aliasFor(lower === 'alice');
     var rules = settings.customRules || [];
     for (var i = 0; i < rules.length; i++) {
-      if (rules[i] && rules[i].from &&
-          rules[i].from.toLowerCase() === lower && rules[i].to) {
-        return rules[i].to;
+      var r = rules[i];
+      if (r && r.from && r.from.toLowerCase() === lower) {
+        return r.to ? r.to : autoAlias(r.from);
       }
     }
     return name; // unreachable: regex only matches known names
@@ -265,8 +276,13 @@
       if (pack && pack.pairs.length) rerollOverride = randomPair(pack);
       applyAll();
       try { sendResponse({ count: count }); } catch (e) { /* tab went away */ }
-    } else if (msg.type === 'alibi-count') {
-      try { sendResponse({ count: count }); } catch (e) { /* tab went away */ }
+    } else if (msg.type === 'alibi-state') {
+      try {
+        sendResponse({
+          count: count,
+          pair: (!settings.enabled || settings.aliasMode === 'chaos') ? null : pair.slice()
+        });
+      } catch (e) { /* tab went away */ }
     }
   }
 
